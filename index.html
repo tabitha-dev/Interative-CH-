@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title></title>
+  <meta name="description" content="" />
+  <meta charset="utf-8" />
+  <style type="text/css">
+    body {
+      margin: 40px auto;
+      margin-top: 1px;
+      max-width: 700px;
+      line-height: 1.6;
+      font-size: 18px;
+      color: #444;
+      padding: 0 10px
+    }
+
+    h1,
+    h2,
+    h3 {
+      line-height: 1.2
+    }
+
+    #divContainer {
+      background: #000000;
+      width: 100%;
+      height: 100%;
+    }
+
+    #subTitle {
+      position: absolute;
+      width: 50%;
+      padding: 10px;
+      margin: -90px 180px auto;
+      font-size: 250%;
+      font-weight: Bold;
+      color: whitesmoke;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="divContainer"></div>
+  <h2 id="subTitle"> Methane CH<sub>4</sub></h2>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.4/jquery.min.js" integrity="sha512-pumBsjNRGGqkPzKHndZMaAG+bir374sORyzM3uulLV14lN5LyykqNk8eEeUlUkB3U0M4FApyaHraT65ihJhDpQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.152.2/three.min.js" integrity="sha512-R7eFJsc3NlvsTn5hdD/Xvi6FwpFGAoGOa2nBNU89DXAZzXgQQrfhgHVpm5Kh7H9EuCU3Ymexph9z4IiHrq977g==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.9/dat.gui.min.js" integrity="sha512-WoO4Ih0CDOSLYafy22wZD/mcJ7k0ESLqtQsFa6zFKnEUrbtuGU+GkLtVhgt93xa2qewG5gKEC6CWlN8OaCTSVg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script type="text/javascript" src="https://cdn.rawgit.com/mrdoob/three.js/master/examples/js/controls/OrbitControls.js"></script>
+  <script type="text/javascript" src="https://threejs.org/examples/js/controls/TransformControls.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.8.0/math.min.js" integrity="sha512-DmQnZdEjFh4R/040JxDSg3j9cS8D0oC5u2noG9Az18F11leiDFwrTOkm9PP+jdBMiH66QBa73O+54kZr5FyU7w==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tweenjs/1.0.2/tweenjs.min.js" integrity="sha512-pmIhTiQq5a595Lh0A//Q1TMJyGBaNk9RHU+clXtRg/REWYcZ8VbQTTP7OGLmBKRVvtL/ZnwKL4SF7R+zpRsfEw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script type="text/javascript">
+    /* 1. various variables for scene size, camera attributes, and DOM element selection. */
+    // Scene size
+    var WIDTH = 700,
+      HEIGHT = 700;
+    // Camera Attributes
+    var VIEW_ANGLE = 45,
+      ASPECT = WIDTH / HEIGHT,
+      NEAR = 1,
+      FAR = 1000;
+    // DOM element
+    var $divContainer = $('#divContainer');
+
+
+    /* 2. Create a WebGL renderer, sets up the scene, clock, and camera. */
+    // WebGL renderer 
+    var renderer = new THREE.WebGLRenderer();
+    // Enable the renderer to calculate shadows.
+    renderer.shadowMap.enabled = true;
+    // Type of Shadows (BasicShadowMap , PCFShadowMap , and PCFSoftShadowMap )
+    renderer.shadowMap.type = THREE.BasicShadowMap;
+    var scene = new THREE.Scene();
+    var clock = new THREE.Clock();
+    var camera = new THREE.PerspectiveCamera(VIEW_ANGLE, ASPECT, NEAR, FAR);
+    var canvas = renderer.domElement;
+
+    /* 3. A canvas event listener is added to track mouse movement. */
+    // Listener for the canvas element ( to track the moving of the mouse of user)
+    canvas.addEventListener('mousemove', onMouseMove);
+    // Adjusting the position of camera from 0,0,0  to 200 so it's pulled back
+    camera.position.z = 200;
+    // Camera is finally added to the scene
+    scene.add(camera)
+    // Putting proper params for Width and Height or renderer and starting it
+    renderer.setSize(WIDTH, HEIGHT);
+    // Now attach the renderer to dom by placing it in div container so we can see it rendered in HTML document
+    $divContainer.append(renderer.domElement);
+
+
+
+
+    /* Lighting elements are created and added to the scene. */
+
+    // Create Area Light using RectAreaLight. RectAreaLight emits light uniformly and this light type can be used to simulate bright light source we need for this project
+
+    var rectAreaLight = new THREE.RectAreaLight(0xffffff, 10);
+    //Create spotlight for illuminating the methane molecule. Spotlight gets emitted from a single point in one direction, along a cone that increases in size the further from the light and hence it is easier for us to create proper shadow using this
+    var spotLight = new THREE.SpotLight(0xffffff);
+    spotLight.position.set(0, 80, 0);
+    spotLight.castShadow = true;
+    // Add rect area light and spot light to scene
+    scene.add(rectAreaLight, spotLight);
+    //Define the qualities of the shadows
+    spotLight.shadow.mapSize.width = 512;
+    spotLight.shadow.mapSize.height = 512;
+    spotLight.shadow.camera.near = 0.5;
+    spotLight.shadow.camera.far = 500
+    spotLight.shadow.focus = 1;
+
+
+    /* 4. Material definitions for carbon (carbonMaterial) and hydrogen (hydrogenMaterial) atoms are provided. Along with Bonds and Plane Geometry */
+    // variable for Carbon
+    var carbonMaterial = new THREE.MeshPhongMaterial({
+      color: 0xd53232,
+      emissive: 0xc52828,
+      shininess: 9,
+      specular: 0x0fffff
+    });
+
+    // variable for Hydrogen
+    var hydrogenMaterial = new THREE.MeshPhongMaterial({
+      color: 0x1d7499,
+      emissive: 0x000be,
+      shininess: 8,
+      specular: 0x0fffff
+    });
+
+    // variable for Bonds for Cylinder geometry and its mesh
+    var bondGeometry = new THREE.CylinderGeometry(3, 3, 60, 35);
+    var bondMaterial = new THREE.MeshPhongMaterial({
+      color: 0xffffff,
+      emissive: 0xd0d0d0,
+      bumpScale: 0.3
+    });
+
+    // variables for Plane geometry (planeGeometry) and material (planeMaterial) are created for the ground plane.
+    var planeGeometry = new THREE.PlaneGeometry(500, 500, 500);
+    var planeMaterial = new THREE.MeshPhongMaterial({
+      color: 0x3ce83c,
+      emissive: 0x002a00,
+      side: THREE.DoubleSide
+    });
+
+    /** 5. Sphere geometry is created for carbon and hydrogen atoms using the defined radii and segments.
+     * 
+     * Create Groups of all atoms and bonds
+     */
+    var carbonRadius = 20,
+      carbonSegments = 35,
+      carbonRings = 35;
+    var hydrogenRadius = 10,
+      hydrogenSegments = 35,
+      hydrogenRings = 35;
+    // Create a new mesh with Sphere Geometry
+
+    // Carbon Atoms
+    var carbon = new THREE.Mesh(
+      new THREE.SphereGeometry(carbonRadius, carbonSegments, carbonRings),
+      carbonMaterial);
+
+    // Hydrogen Atoms
+    var hydrogen1 = new THREE.Mesh(
+      new THREE.SphereGeometry(hydrogenRadius, hydrogenSegments, hydrogenRings),
+      hydrogenMaterial);
+
+    var hydrogen2 = new THREE.Mesh(
+      new THREE.SphereGeometry(hydrogenRadius, hydrogenSegments, hydrogenRings),
+      hydrogenMaterial);
+
+    var hydrogen3 = new THREE.Mesh(
+      new THREE.SphereGeometry(hydrogenRadius, hydrogenSegments, hydrogenRings),
+      hydrogenMaterial);
+
+    var hydrogen4 = new THREE.Mesh(
+      new THREE.SphereGeometry(hydrogenRadius, hydrogenSegments, hydrogenRings),
+      hydrogenMaterial);
+
+    // All four covalent bonds between five atoms 
+    var bond1 = new THREE.Mesh(bondGeometry, bondMaterial);
+    var bond2 = new THREE.Mesh(bondGeometry, bondMaterial);
+    var bond3 = new THREE.Mesh(bondGeometry, bondMaterial);
+    var bond4 = new THREE.Mesh(bondGeometry, bondMaterial);
+
+    /* 
+    We can create a group of the carbon, hydrogen, and bonds so that they can manipulated together 
+    instead of individually. This could have been done using Object3D but Three.Group() Object is better suited as per
+    https://threejs.org/docs/#api/en/core/Object3D
+    
+    */
+    var CH4 = new THREE.Group();
+    CH4.add(carbon, hydrogen1, hydrogen2, hydrogen3, hydrogen4, bond1, bond2, bond3, bond4);
+
+    // Variable for plane      
+    var plane = new THREE.Mesh(planeGeometry, planeMaterial);
+
+    //  Set each atoms and bonds shadow 
+    carbon.castShadow = true;
+    hydrogen1.castShadow = true;
+    hydrogen2.castShadow = true;
+    hydrogen3.castShadow = true;
+    hydrogen4.castShadow = true;
+    bond1.castShadow = true;
+    bond2.castShadow = true;
+    bond3.castShadow = true;
+    bond4.castShadow = true;
+
+    // make sure plane can receive shadow
+    plane.receiveShadow = true;
+
+    // CH4 and plane added to scene
+    scene.add(CH4, plane);
+
+
+    /* 6. Positions and rotations are defined for the atoms and bonds to arrange them in the desired molecule structure.
+     * 
+     */
+    hydrogen1.position.y = 55;
+    hydrogen2.position.y = -25;
+    hydrogen2.position.z = 55;
+
+    hydrogen3.position.x = -50;
+    hydrogen3.position.y = -25;
+    hydrogen3.position.z = -5;
+
+    hydrogen4.position.x = 50;
+    hydrogen4.position.y = -25;
+    hydrogen4.position.z = -10;
+
+    bond1.position.y = 25;
+
+    bond2.position.y = -10;
+    bond2.position.z = 20;
+    bond2.rotation.x = -20;
+
+    bond3.position.x = -15;
+    bond3.position.y = -10;
+    bond3.position.z = -1;
+    bond3.rotation.y = -0.2;
+    bond3.rotation.z = -20;
+
+    bond4.position.x = 15;
+    bond4.position.y = -10;
+    bond4.position.z = -6;
+    bond4.rotation.y = 0.2;
+    bond4.rotation.z = 20;
+
+    plane.position.y = -55
+    plane.rotation.x = 300;
+
+    /* 7. Usual three.js functions for Animate, Mouse Move and render */
+
+    function onMouseMove(event) {
+      CH4.rotation.x += event.movementY * 0.002;
+      CH4.rotation.y += event.movementX * 0.002;
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+      render();
+    }
+
+    function render() {
+      renderer.render(scene, camera);
+    }
+    animate();
+  </script>
+</body>
+
+</html>
